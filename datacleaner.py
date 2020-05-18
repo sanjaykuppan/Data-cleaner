@@ -1,62 +1,58 @@
 import pandas as pd 
 from sklearn.impute import SimpleImputer
 import numpy as np
+import json
 
-def imputing():
-    data=pd.read_csv("Data.csv")
-    dataarr=data.iloc[:,:].values
-    print(dataarr)
-    #finding the columns with numeric values to fill missing values
-    datasample=dataarr[1]
-    inum=[]  # list to hold the index of columns with numeric values
-    for i in datasample:
-        if type(i) in [int, float]:
-            inum.append(np.where(datasample==i)[0][0])  #appending the column number to the inum list
-    #find if the data has empty cells or missing values
-    emptyindex = list(map(list,np.where(pd.isna(np.array(dataarr)))))
-    eind=[]
-    for i in zip(emptyindex[0],emptyindex[1]):  #zip is used to combine values from different containers into one entity
-        eind.append(list(i))
-    imputer = SimpleImputer(missing_values=np.nan,strategy="mean")
-    for imp in inum:
-        imputer = imputer.fit(dataarr[:,imp].reshape(len(dataarr[:,imp]),1))
-        datafilled = imputer.transform(dataarr[:,imp].reshape(len(dataarr[:,imp]),1))
-        print ("\n" , datafilled )
-        dataarr[:,imp]=datafilled.reshape(len(dataarr[:,imp])) #replace filled data in the numpy arrray
-    print(dataarr)
-    datamod=pd.DataFrame(dataarr)  #converting to dataframe
-    np.savetxt('datamodified.csv',dataarr,delimiter=',',fmt='%s')
+class dataclean:
+    def readdata(self):
+        with open('filedetail.json','r') as file:
+            self.detail=file.read()
+        self.filename=json.loads(self.detail)
+        self.data=pd.read_csv(self.filename["filename"])
+        self.dataarr=self.data.iloc[:,:].values
+        #finding the columns with numeric values to fill missing values
+        self.datasample=self.dataarr[1]
+        self.inum=[]  # list to hold the index of columns with numeric values
+        for i in self.datasample:
+            if type(i) in [int, float]:
+                self.inum.append(np.where(self.datasample==i)[0][0])  #appending the column number to the inum list
 
-def outliers():
-    data=pd.read_csv("Data.csv")
-    dataarr=data.iloc[:,:].values
-    #finding the columns with numeric values to fill missing values
-    datasample=dataarr[1]
-    inum=[]  # list to hold the index of columns with numeric values
-    for i in datasample:
-        if type(i) in [int, float]:
-            inum.append(np.where(datasample==i)[0][0])  #appending the column number to the inum list
-    print("inum",inum)
-    for imp in inum:
-        print(dataarr[:,imp])
-        stddev=np.nanstd(dataarr[:,imp].astype('float32')) #find the standard deviation in the numeric column
-        datamean=np.nanmean(dataarr[:,imp].astype('float32'))  #find the mean of the column
-        cutoff=stddev*2 #set cutoff to 3 time the std deviation
-        lowlimit=datamean - cutoff  #lower limit
-        uplimit=datamean + cutoff  #upper limit
-        outdata=[]  # seperated outlier data
-        print("stddev",stddev,"mean",datamean,"lowlimit",lowlimit,"uplimit",uplimit)
-        for i in dataarr[:,imp]:
-            if i < lowlimit or i > uplimit:
-                loc=np.where(dataarr==i)[0][0]   #find the location index
-                print("loc",loc,'data',i)
-                outdata.append(dataarr[loc,:])  #append the row to the outlier data
-                dataarr=np.delete(dataarr,loc,axis=0)
-        outdata=np.array(outdata)
-        print("outdata",outdata,"\n","data",'\n',dataarr)
+    def imputing(self):
+        #find if the data has empty cells or missing values
+        self.emptyindex = list(map(list,np.where(pd.isna(np.array(self.dataarr)))))
+        self.eind=[]
+        for i in zip(self.emptyindex[0],self.emptyindex[1]):  #zip is used to combine values from different containers into one entity
+            self.eind.append(list(i))
+        imputer = SimpleImputer(missing_values=np.nan,strategy="mean")
+        for imp in self.inum:
+            imputer = imputer.fit(self.dataarr[:,imp].reshape(len(self.dataarr[:,imp]),1))
+            datafilled = imputer.transform(self.dataarr[:,imp].reshape(len(self.dataarr[:,imp]),1))
+            print ("\n" , datafilled )
+            self.dataarr[:,imp]=datafilled.reshape(len(self.dataarr[:,imp])) #replace filled data in the numpy arrray
+        np.savetxt('datamodified.csv',self.dataarr,delimiter=',',fmt='%s')
+
+    def outliers(self):
+        for imp in self.inum:
+            stddev=np.nanstd(self.dataarr[:,imp].astype('float32')) #find the standard deviation in the numeric column
+            datamean=np.nanmean(self.dataarr[:,imp].astype('float32'))  #find the mean of the column
+            cutoff=stddev*2 #set cutoff to 3 time the std deviation
+            lowlimit=datamean - cutoff  #lower limit
+            uplimit=datamean + cutoff  #upper limit
+            self.outdata=[]  # seperated outlier data
+            print("stddev",stddev,"mean",datamean,"lowlimit",lowlimit,"uplimit",uplimit)
+            for i in self.dataarr[:,imp]:
+                if i < lowlimit or i > uplimit:
+                    loc=np.where(self.dataarr==i)[0][0]   #find the location index
+                    self.outdata.append(self.dataarr[loc,:])  #append the row to the outlier data
+                    self.dataarr=np.delete(self.dataarr,loc,axis=0)
+            self.outdata=np.array(self.outdata)
+            np.savetxt("outliers.csv",self.outdata,delimiter=',',fmt='%s')
 
 
 
 if __name__ == "__main__":
-    #imputing()  
-    outliers()
+    dc=dataclean()  #create an object of class dataclean
+    dc.readdata()   #read the data and identify the numerical columns
+    dc.outliers()   #find the outliers and seperate them, must be done before replacing missing values
+    dc.imputing()   #find the missing cells and fill them
+    
