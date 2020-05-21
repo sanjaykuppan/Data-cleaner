@@ -17,18 +17,29 @@ class dataclean:
             if type(i) in [int, float]:
                 self.inum.append(np.where(self.datasample==i)[0][0])  #appending the column number to the inum list
 
-    def imputing(self):
+    def findemptyindex(self):
         #find if the data has empty cells or missing values
         self.emptyindex = list(map(list,np.where(pd.isna(np.array(self.dataarr)))))
         self.eind=[]
         for i in zip(self.emptyindex[0],self.emptyindex[1]):  #zip is used to combine values from different containers into one entity
             self.eind.append(list(i))
+        #print(self.eind)
+
+    def imputing(self):
+        #Fill the empty numerical values
         imputer = SimpleImputer(missing_values=np.nan,strategy="mean")
         for imp in self.inum:
             imputer = imputer.fit(self.dataarr[:,imp].reshape(len(self.dataarr[:,imp]),1))
             datafilled = imputer.transform(self.dataarr[:,imp].reshape(len(self.dataarr[:,imp]),1))
             print ("\n" , datafilled )
             self.dataarr[:,imp]=datafilled.reshape(len(self.dataarr[:,imp])) #replace filled data in the numpy arrray
+        self.findemptyindex()
+        self.missdata=[]
+        for i in self.eind :
+            self.missdata.append(self.dataarr[i[0],:])
+        for i in self.eind:
+            self.dataarr=np.delete(self.dataarr,i[0],axis=0)
+        np.savetxt('missingdata.csv',self.missdata,delimiter=',',fmt='%s')        
         np.savetxt('datamodified.csv',self.dataarr,delimiter=',',fmt='%s')
 
     def outliers(self):
@@ -54,5 +65,5 @@ if __name__ == "__main__":
     dc=dataclean()  #create an object of class dataclean
     dc.readdata()   #read the data and identify the numerical columns
     dc.outliers()   #find the outliers and seperate them, must be done before replacing missing values
-    dc.imputing()   #find the missing cells and fill them
+    dc.imputing()   #find the missing cells and fill numeric, seperate the categorical and save to seperate file
     
