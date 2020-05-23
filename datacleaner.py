@@ -35,10 +35,14 @@ class dataclean:
             self.dataarr[:,imp]=datafilled.reshape(len(self.dataarr[:,imp])) #replace filled data in the numpy arrray
         self.findemptyindex()
         self.missdata=[]
-        for i in self.eind :
-            self.missdata.append(self.dataarr[i[0],:])
+        self.rowlist=[]
         for i in self.eind:
-            self.dataarr=np.delete(self.dataarr,i[0],axis=0)
+            self.rowlist.append(i[0])
+        self.rowlist=np.unique(self.rowlist)
+        for i in self.rowlist :
+            self.missdata.append(self.dataarr[i,:])
+        for i in self.rowlist:
+            self.dataarr=np.delete(self.dataarr,i,axis=0)
         np.savetxt('missingdata.csv',self.missdata,delimiter=',',fmt='%s')        
         np.savetxt('datamodified.csv',self.dataarr,delimiter=',',fmt='%s')
 
